@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
 <body>
 <canvas id='canvas' width=10 height=10/>
 </body>
 <script>
 
-const constraints = { whiteBalanceMode     : "manual",
+const constraints = { whiteBalanceMode     : "single-shot",
                       exposureMode         : "manual",
                       focusMode            : "single-shot",
 
@@ -21,10 +22,6 @@ const constraints = { whiteBalanceMode     : "manual",
                       sharpness            : 6,
                       focusDistance        : 7,
 
-                      pan                  : 8,
-                      tilt                 : 9,
-
-                      zoom                 : 3.141592
                       // TODO: torch https://crbug.com/700607.
                     };
 
@@ -35,29 +32,25 @@ context.fillRect(0, 0, 10, 10);
 
 // These tests verify that MediaStreamTrack.getConstraints() exists and that,
 // returns the constraints passed beforehand with applyConstraints.
-var makeAsyncTest = function(c) {
-  async_test(function(t) {
+var makePromiseTest = function(c) {
+  image_capture_test(async function(t) {
     var stream = canvas.captureStream();
     var videoTrack = stream.getVideoTracks()[0];
 
-    const constraintsIn = { advanced : [ c ]};
+    // |videoTrack|'s capabilities gathering, just like the actual capture, is
+    // a process kicked off right after creation, we introduce a small delay
+    // to allow for those to be collected, since they are needed to understand
+    // which constraints are supported in applyConstraints().
+    // TODO(mcasas): this shouldn't be needed, https://crbug.com/711524.
+    await new Promise(resolve => step_timeout(resolve, 100));
 
-    // Method applyConstraints() will fail since there is no Image Capture
-    // service in this Layout Test, but |constraintsIn| should be cached.
-    videoTrack.applyConstraints(constraintsIn)
-        .then(() => { /* ignore */ })
-        .catch((e) => { /* ignore */ })
-        .then(t.step_func(() => {
-          const constraintsOut = videoTrack.getConstraints();
-          assert_object_equals(constraintsOut, constraintsIn, "constraints");
-          // Clear constraints by sending an empty constraint set.
-          return videoTrack.applyConstraints({})
-        }))
-        .then(t.step_func(() => {
-          const constraintsOut = videoTrack.getConstraints();
-          assert_object_equals(constraintsOut, {}, "constraints");
-          t.done();
-        }));
+    var constraintsIn = { advanced : [ c ] };
+    await videoTrack.applyConstraints(constraintsIn);
+    assert_object_equals(videoTrack.getConstraints(), constraintsIn, "constraints");
+
+    // Clear constraints by sending an empty constraint set.
+    await videoTrack.applyConstraints({});
+    assert_object_equals(videoTrack.getConstraints(), {}, "constraints");
   });
 };
 
@@ -66,11 +59,11 @@ for (key in constraints) {
   var one_constraint = {};
   one_constraint[key] = constraints[key];
   generate_tests(
-      makeAsyncTest,
+      makePromiseTest,
       [[ 'MediaStreamTrack.getConstraints(), key: ' + key, one_constraint ]]);
 }
 
-generate_tests(makeAsyncTest, [[
+generate_tests(makePromiseTest, [[
                  'MediaStreamTrack.getConstraints(), complete ', constraints
                ]]);
 
