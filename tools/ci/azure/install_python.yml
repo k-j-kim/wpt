@@ -14,7 +14,11 @@ steps:
       Throw "python_installer.exe hash mismatch, got $hash, expected $expectedHash"
     }
     Write-Host "Running python_installer.exe"
-    & .\python_installer.exe /passive TargetDir=C:\Python38
+    & .\python_installer.exe /passive /log .\log.txt TargetDir=C:\Python38
+    Write-Host "Dumping current dir"
+    Get-ChildItem "."
+    Write-Host "Dumping log"
+    Get-Content -Path .\log.txt
     Write-Host "Dumping C: dir"
     Get-ChildItem "C:\"
     Write-Host "Dumping C:\Python38 dir"
