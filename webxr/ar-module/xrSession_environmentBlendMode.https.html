@@ -9,16 +9,23 @@
     xr_session_promise_test(
       "Tests environmentBlendMode for an AR device",
       (session) => {
-        assert_not_equals(session.environmentBlendMode, "opaque");
-        assert_in_array(session.environmentBlendMode, ["alpha-blend", "additive"]);
+        assert_equals(session.environmentBlendMode, "additive");
+        assert_equals(session.interactionMode, "world-space");
       }, IMMERSIVE_AR_DEVICE, 'immersive-ar', {});
 
 
     xr_session_promise_test(
       "Tests environmentBlendMode for a VR device",
       (session) => {
-        assert_not_equals(session.environmentBlendMode, "alpha-blend");
-        assert_in_array(session.environmentBlendMode, ["opaque", "additive"]);
+        assert_equals(session.environmentBlendMode, "opaque");
+        assert_equals(session.interactionMode, "world-space");
       }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {});
+
+    xr_session_promise_test(
+      "Tests environmentBlendMode for a non-immersive device",
+      (session) => {
+        assert_equals(session.environmentBlendMode, "opaque");
+        assert_equals(session.interactionMode, "screen-space");
+      }, VALID_NON_IMMERSIVE_DEVICE, 'inline', {});
 </script>
 </body>
